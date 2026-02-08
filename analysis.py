@@ -42,4 +42,11 @@ if __name__ == "__main__":
     pd.set_option("display.width", 120)
     print(df)
     print(f"\n{len(df)} rows total ({df['sample'].nunique()} samples x {df['population'].nunique()} populations)")
+
+    output_dir = os.path.join(os.path.dirname(__file__), "outputs")
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "frequency_table.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Saved to {csv_path}")
+
     conn.close()

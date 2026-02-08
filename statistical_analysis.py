@@ -123,6 +123,8 @@ if __name__ == "__main__":
         print("Significant populations:", ", ".join(sig["population"].tolist()))
 
     # Boxplot
-    create_boxplot(df)
+    output_dir = os.path.join(os.path.dirname(__file__), "outputs")
+    os.makedirs(output_dir, exist_ok=True)
+    create_boxplot(df, output_path=os.path.join(output_dir, "boxplot_responders_vs_nonresponders.png"))
 
     conn.close()
