@@ -1,6 +1,6 @@
-# Clinical Trial Analysis — Loblaw Bio
+# Teiko Teiknical Assessment
 
-Analysis of immune cell populations across clinical trial samples, built for Bob Loblaw at Loblaw Bio.
+
 
 ## Setup & Running (GitHub Codespaces)
 
