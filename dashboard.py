@@ -206,3 +206,111 @@ with chart3:
 # Raw data explorer
 st.subheader("Baseline Samples Explorer")
 st.dataframe(baseline_df, use_container_width=True, height=300)
+
+# ── Interactive Cell Count Explorer ─────────────────────────────────────────
+st.subheader("Interactive Cell Count Explorer")
+st.markdown("Filter by any combination of attributes to compute statistics for a specific cell population.")
+
+
+@st.cache_data
+def load_explorer_data():
+    conn = get_db_connection()
+    return pd.read_sql_query(
+        """
+        SELECT
+            sub.condition, sub.sex, sub.age,
+            s.sample_id, s.subject_id, s.project, s.treatment, s.response,
+            s.sample_type, s.time_from_treatment_start,
+            cc.population, cc.count
+        FROM cell_counts cc
+        JOIN samples s ON cc.sample_id = s.sample_id
+        JOIN subjects sub ON s.subject_id = sub.subject_id
+        """,
+        conn,
+    )
+
+
+explorer_df = load_explorer_data()
+
+fc1, fc2, fc3 = st.columns(3)
+with fc1:
+    ex_condition = st.multiselect(
+        "Condition",
+        sorted(explorer_df["condition"].unique()),
+        default=["melanoma"],
+        key="ex_condition",
+    )
+    ex_sex = st.multiselect(
+        "Sex",
+        sorted(explorer_df["sex"].unique()),
+        default=["M"],
+        key="ex_sex",
+    )
+with fc2:
+    ex_treatment = st.multiselect(
+        "Treatment",
+        sorted(explorer_df["treatment"].unique()),
+        default=sorted(explorer_df["treatment"].unique()),
+        key="ex_treatment",
+    )
+    ex_response = st.multiselect(
+        "Response",
+        sorted(explorer_df["response"].unique()),
+        default=["yes"],
+        key="ex_response",
+    )
+with fc3:
+    ex_sample_type = st.multiselect(
+        "Sample Type",
+        sorted(explorer_df["sample_type"].unique()),
+        default=sorted(explorer_df["sample_type"].unique()),
+        key="ex_sample_type",
+    )
+    ex_timepoints = sorted(explorer_df["time_from_treatment_start"].unique())
+    ex_time = st.multiselect(
+        "Timepoint",
+        ex_timepoints,
+        default=[0],
+        key="ex_time",
+    )
+
+populations_sorted = sorted(explorer_df["population"].unique())
+ex_population = st.selectbox(
+    "Cell Population",
+    populations_sorted,
+    index=populations_sorted.index("b_cell"),
+    key="ex_population",
+)
+
+filtered = explorer_df[
+    (explorer_df["condition"].isin(ex_condition))
+    & (explorer_df["sex"].isin(ex_sex))
+    & (explorer_df["treatment"].isin(ex_treatment))
+    & (explorer_df["response"].isin(ex_response))
+    & (explorer_df["sample_type"].isin(ex_sample_type))
+    & (explorer_df["time_from_treatment_start"].isin(ex_time))
+    & (explorer_df["population"] == ex_population)
+]
+
+if filtered.empty:
+    st.warning("No data matches the selected filters.")
+else:
+    counts = filtered["count"]
+    s1, s2, s3, s4, s5 = st.columns(5)
+    s1.metric("Samples", f"{len(counts):,}")
+    s2.metric("Mean", f"{counts.mean():,.2f}")
+    s3.metric("Median", f"{counts.median():,.2f}")
+    s4.metric("Std Dev", f"{counts.std():,.2f}")
+    s5.metric("Unique Subjects", f"{filtered['subject_id'].nunique():,}")
+
+    fig_hist = px.histogram(
+        filtered,
+        x="count",
+        nbins=40,
+        title=f"Distribution of {ex_population.replace('_', ' ').title()} Counts",
+        labels={"count": "Cell Count"},
+        color_discrete_sequence=["#3498db"],
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
+
+    st.dataframe(filtered, use_container_width=True, height=300)
